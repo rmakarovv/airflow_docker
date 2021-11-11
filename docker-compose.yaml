@@ -58,7 +58,7 @@ x-airflow-common:
     AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
-    - /home/arix/airflow-docker/dags:/opt/airflow/dags
+    - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
@@ -267,7 +267,8 @@ services:
         condition: service_completed_successfully
 
   minio:
-    image: bitnami/minio:latest
+    # image: bitnami/minio:2020.2.20
+    image: 'bitnami/minio'
     restart: 'no'
     environment:
       # - MINIO_ACCESS_KEY=minio-access-key
@@ -276,21 +277,21 @@ services:
       - MINIO_SECRET_KEY=minioadmin
     volumes:
       # - ./minio:/data
-        - ./data:/data
+        - ./minio_data:/data
     ports:
       - 9000:9000
       - 9001:9001
 
-  minio-create-bucket:
+  minio-create-bucket:  
     image: minio/mc
     depends_on:
       - minio
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb myminio/data;
-      /usr/bin/mc policy download myminio/data;
-      /usr/bin/mc policy upload myminio/data;
+      /usr/bin/mc mb myminio/minio_data;
+      /usr/bin/mc policy download myminio/minio_data;
+      /usr/bin/mc policy upload myminio/minio_data;
       exit 0;
       "
 volumes:
