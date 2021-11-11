@@ -3,7 +3,6 @@ from airflow import DAG
 import datetime
 from airflow.operators.python import PythonOperator
 
-
 DEFAULT_ARGS = {
     'owner': 'Airflow',
     'depends_on_past': False,
@@ -20,17 +19,17 @@ dag = DAG('test_dag', default_args=DEFAULT_ARGS,
 
 
 def write_text_file(**kwargs):
-    # s3 = S3Hook('local_minio')
-    # data_b = s3.get_bucket('data')
-
-    
-    with open("test.txt", "w") as fp:
-        fp.write('test text')
-        # Add file generation/processing step here, E.g.:
-        s3 = S3Hook('local_minio')
-        s3.load_file("test.txt",
-                     key=f"test.txt",
-                     bucket_name="data")
+    s3 = S3Hook('local_minio')
+    BUCKET = 'data'
+    KEY = 'test.txt'
+    string = ""
+    a = s3.list_keys(BUCKET)
+    for i in a:
+        string += str(a) + '\n'
+    # Читать текст
+    x = s3.read_key('test.txt', BUCKET)
+    # Писать текст
+    s3.load_string("debug:" + x, KEY, BUCKET, True)
 
 
 # Create a task to call your processing function
