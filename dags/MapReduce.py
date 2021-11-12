@@ -10,13 +10,11 @@ import pandas as pd
 from airflow import DAG
 from airflow.models import BaseOperator
 from airflow.operators.python import PythonOperator
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 
-# pref = f'{pathlib.Path().resolve()}/'
-# if pref[-5:-1] == 'dags':
-#     pref = pref[:-5]
-pref = '/home/arix/airflow-docker/data'
-path_to_the_data_file = f'{pref}data/tweets.csv'
+pref = './'
+s3 = S3Hook('local_minio')
 
 
 def process_data():
@@ -47,7 +45,10 @@ def process_data():
             print("Error while creating path")
 
     """ Splitting data into many sub-files for each author """
-    df = pd.read_csv(path_to_the_data_file, delimiter=",")
+
+
+    file_name = s3.download_file('tweets.csv', 'data')
+    df = pd.read_csv(file_name, delimiter=",")
     df = df.drop(['number_of_shares', 'country', 'date_time',
                   'id', 'language', 'latitude', 'longitude', 'number_of_likes', 'number_of_shares'], axis=1)
 
@@ -133,6 +134,14 @@ class Reducer(BaseOperator):
 
             if prev_count > 0:
                 out_.write(prev_word + ',' + str(prev_count) + '\n')
+
+        BUCKET = 'data'
+        KEY = 'result_unsorted.csv'
+
+        s3.load_file(f'{pref}data/result_unsorted.csv', KEY, BUCKET, replace=True)
+        s3.load_string('some text', 'test.txt', 'data', replace=True)
+
+
 
 
 def work():

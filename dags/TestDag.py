@@ -3,6 +3,9 @@ from airflow import DAG
 import datetime
 from airflow.operators.python import PythonOperator
 
+import psycopg2
+
+
 DEFAULT_ARGS = {
     'owner': 'Airflow',
     'depends_on_past': False,
@@ -10,7 +13,7 @@ DEFAULT_ARGS = {
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 1,
+    'retries': 0,
     'retry_delay': datetime.timedelta(minutes=5),
 }
 
@@ -22,14 +25,36 @@ def write_text_file(**kwargs):
     s3 = S3Hook('local_minio')
     BUCKET = 'data'
     KEY = 'test.txt'
+
     string = ""
     a = s3.list_keys(BUCKET)
     for i in a:
         string += str(a) + '\n'
+
+    # So we can open internal files and only then push them to
+    # minio as a checkpoint
+    # because reading from them is a pain, since read_key returns string
+    # instead of a file and download_file does some unknown (...)
+    with open('test.csv', 'w') as f:
+        f.write(string)
+        f.write('new line lolik)) ==) 00 -=4igg]\nn,flflf\n\n\\t\t\tt\)\n')
+
+    string = ""
+    with open('test.csv', 'r') as f:
+        for line in f:
+            string += line.strip() + "\n"
+
+    conn = psycopg2.connect("host='localhost' port='5432' dbname='airflow' user='airflow' password='airflow'")
+    f = open('test.csv', 'r')
+    conn.cursor().copy_from(f, 'airflow', sep=',')
+    f.close()
+    conn.commit()
+    conn.close()
+
     # Читать текст
-    x = s3.read_key('test.txt', BUCKET)
+    # x = s3.read_key('test.txt', BUCKET)
     # Писать текст
-    s3.load_string("debug:" + x, KEY, BUCKET, True)
+    s3.load_string("debug:" + string, KEY, BUCKET, True)
 
 
 # Create a task to call your processing function
