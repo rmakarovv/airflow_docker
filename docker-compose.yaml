@@ -73,16 +73,19 @@ services:
   postgres:
     image: postgres:13
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: 'airflow'
+      POSTGRES_PASSWORD: 'airflow'
+      POSTGRES_DB: 'airflow'
+      PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
+      - ./airflow:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s
       retries: 5
-    restart: always
+    restart: 'always'
+    ports:
+      - '5432:5432'
 
   redis:
     image: redis:latest
@@ -267,16 +270,12 @@ services:
         condition: service_completed_successfully
 
   minio:
-    # image: bitnami/minio:2020.2.20
     image: 'bitnami/minio'
     restart: 'no'
     environment:
-      # - MINIO_ACCESS_KEY=minio-access-key
       - MINIO_ACCESS_KEY=minioadmin
-      # - MINIO_SECRET_KEY=minio-secret-key
       - MINIO_SECRET_KEY=minioadmin
     volumes:
-      # - ./minio:/data
         - ./minio_data:/data
     ports:
       - 9000:9000

@@ -2,8 +2,9 @@ import heapq
 import os
 import re
 import string
-import pathlib
 from datetime import datetime
+import psycopg2
+from sqlalchemy import create_engine
 
 import pandas as pd
 
@@ -11,7 +12,6 @@ from airflow import DAG
 from airflow.models import BaseOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 
 pref = './'
 s3 = S3Hook('local_minio')
@@ -46,7 +46,6 @@ def process_data():
 
     """ Splitting data into many sub-files for each author """
 
-
     file_name = s3.download_file('tweets.csv', 'data')
     df = pd.read_csv(file_name, delimiter=",")
     df = df.drop(['number_of_shares', 'country', 'date_time',
@@ -76,6 +75,7 @@ def process_data():
 
 class Map(BaseOperator):
     """ Counting words for the given partition """
+
     def __init__(self, _name: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.name = _name
@@ -103,6 +103,7 @@ class Map(BaseOperator):
 
 class Reducer(BaseOperator):
     """ Merging all results of the Map function """
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
@@ -135,13 +136,17 @@ class Reducer(BaseOperator):
             if prev_count > 0:
                 out_.write(prev_word + ',' + str(prev_count) + '\n')
 
+        conn = psycopg2.connect(host="postgres", user="airflow", password="airflow", database="postgres")
+
+        engine = create_engine('postgresql://airflow:airflow@postgres:5432/airflow')
+        df = pd.read_csv(f'{pref}data/result_unsorted.csv')
+        try:
+            df.to_sql('results', engine)
+        except:
+            pass
+
         BUCKET = 'data'
-        KEY = 'result_unsorted.csv'
-
-        s3.load_file(f'{pref}data/result_unsorted.csv', KEY, BUCKET, replace=True)
-        s3.load_string('some text', 'test.txt', 'data', replace=True)
-
-
+        s3.load_file(f'{pref}data/result_unsorted.csv', 'check.csv', BUCKET, True)
 
 
 def work():
