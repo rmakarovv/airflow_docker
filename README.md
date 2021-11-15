@@ -40,7 +40,7 @@ How to run:
 	
 		connection_id: 			local_minio
 	
-		connection_type: 		s3
+		connection_type: 			s3
 	
 		host: 				postgres
 	
