@@ -30,7 +30,7 @@ How to run:
 
 		chmod +x airflow.sh
 
-* Pull minio on minio_data and put tweets.csv there
+* Pull minio on minio_data, create there directory data (./data in the current project) and put tweets.csv there
 
 * Give all permissions to all the files and directories
 
